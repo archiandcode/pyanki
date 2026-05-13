@@ -320,17 +320,17 @@ class App:
         completed: set[int] = set()
         steps_done = 0
         current_index = queue.popleft()
+        note = ""
         show_back = False
         rating_index = 0
         rel = deck_path.relative_to(self.cards_root).as_posix()
 
         while True:
-            note = self.state.get_note(rel, current_index)
             height, width = stdscr.getmaxyx()
             stdscr.erase()
             header = f"{rel}  done:{len(completed)}/{len(cards)}  queue:{len(queue)} pending:{len(pending)}"
             if show_back:
-                help_line = "←→ сложность  Enter подтвердить  Ctrl+A очистить заметки  Ctrl+B назад  Ctrl+X выход"
+                help_line = "1-4 выбрать сложность  ←→ сложность  Enter подтвердить  Ctrl+B назад  Ctrl+X выход"
             else:
                 help_line = "Enter показать ответ  печать=заметки  Ctrl+A очистить  Ctrl+B назад  Ctrl+X выход"
             stdscr.addnstr(0, 0, header, width - 1)
@@ -363,7 +363,7 @@ class App:
             notes_top = max(row + 1, height - notes_height)
             if notes_top < height:
                 stdscr.hline(notes_top, 0, "-", max(0, width - 1))
-            label = "Notes"
+            label = "Notes (read-only)" if show_back else "Notes"
             if notes_top + 1 < height:
                 stdscr.addnstr(notes_top + 1, 0, trim_text(label, width - 1), width - 1)
             note_lines = visible_note_lines(note, width - 2)
@@ -377,11 +377,12 @@ class App:
                 stdscr.addnstr(note_row, 0, trim_text(line, width - 1), width - 1, self.notes_attr)
                 note_row += 1
 
-            curses.curs_set(1)
+            curses.curs_set(0 if show_back else 1)
             cursor_line = len(display_lines) - 1
             cursor_y = min(height - 1, notes_top + 2 + max(0, cursor_line))
             cursor_x = min(width - 1, len(display_lines[-1]) if display_lines else 0)
-            stdscr.move(cursor_y, cursor_x)
+            if not show_back:
+                stdscr.move(cursor_y, cursor_x)
 
             stdscr.refresh()
             key = stdscr.get_wch()
@@ -389,20 +390,26 @@ class App:
                 return True
             if key == "\x02":
                 return False
-            changed = self.handle_note_input(key, note, rel, current_index)
-            if changed is not None:
-                continue
-            if not show_back and is_enter_key(key):
-                show_back = not show_back
-                rating_index = 0
-                continue
+            if not show_back:
+                changed = self.handle_note_input(key, note)
+                if changed is not None:
+                    note = changed
+                    continue
+                if is_enter_key(key):
+                    show_back = True
+                    rating_index = 0
+                    continue
             if show_back and key == curses.KEY_LEFT:
                 rating_index = max(0, rating_index - 1)
                 continue
             if show_back and key == curses.KEY_RIGHT:
                 rating_index = min(len(DIFFICULTIES) - 1, rating_index + 1)
                 continue
-            if show_back and is_enter_key(key):
+            if show_back and isinstance(key, str) and key in ("1", "2", "3", "4"):
+                rating_index = int(key) - 1
+            elif not (show_back and is_enter_key(key)):
+                continue
+            if show_back:
                 option = DIFFICULTIES[rating_index]
                 steps_done += 1
                 if option.gap is None:
@@ -417,25 +424,21 @@ class App:
                     self.show_message(stdscr, f"Сессия завершена. Все {len(cards)} карточек отмечены как легко.")
                     return False
                 current_index = queue.popleft()
+                note = ""
                 show_back = False
                 rating_index = 0
 
-    def handle_note_input(self, key: object, note: str, rel_path: str, index: int) -> str | None:
+    def handle_note_input(self, key: object, note: str) -> str | None:
         if key == "\x01":
-            note = ""
-            self.state.save_note(rel_path, index, note)
-            return note
+            return ""
         if key == "\x0e":
             note += "\n"
-            self.state.save_note(rel_path, index, note)
             return note
         if is_backspace_key(key):
             note = note[:-1]
-            self.state.save_note(rel_path, index, note)
             return note
         if is_printable_key(key):
             note += str(key)
-            self.state.save_note(rel_path, index, note)
             return note
         return None
 
@@ -448,13 +451,13 @@ class App:
         ready = [item for item in pending if item[0] <= steps_done]
         pending[:] = [item for item in pending if item[0] > steps_done]
         random.shuffle(ready)
-        for _, card_index in ready:
-            queue.append(card_index)
+        for _, card_index in reversed(ready):
+            queue.appendleft(card_index)
 
     def format_difficulty_line(self, rating_index: int, width: int) -> str:
         parts: list[str] = []
         for index, option in enumerate(DIFFICULTIES):
-            label = option.label
+            label = f"{index + 1} {option.label}"
             if index == rating_index:
                 label = f"[{label}]"
             parts.append(label)
@@ -494,7 +497,7 @@ class App:
         x = 0
         max_width = max(0, width - 1)
         for index, option in enumerate(DIFFICULTIES):
-            label = option.label
+            label = f"{index + 1} {option.label}"
             if index == rating_index:
                 label = f"[{label.upper()}]"
             if index > 0:
