@@ -53,6 +53,10 @@ function parseDeck(text) {
     .filter(Boolean);
 }
 
+function appUrl(path) {
+  return new URL(path, document.baseURI).toString();
+}
+
 async function discoverDecks(path = "cards/", seen = new Set()) {
   if (path === "cards/") {
     const manifestDecks = await discoverDecksFromManifest();
@@ -62,7 +66,7 @@ async function discoverDecks(path = "cards/", seen = new Set()) {
   if (seen.has(path)) return [];
   seen.add(path);
 
-  const response = await fetch(path);
+  const response = await fetch(appUrl(path));
   if (!response.ok) return [];
 
   const html = await response.text();
@@ -87,7 +91,7 @@ async function discoverDecks(path = "cards/", seen = new Set()) {
 
 async function discoverDecksFromManifest() {
   try {
-    const response = await fetch("cards/index.json", { cache: "no-store" });
+    const response = await fetch(appUrl("cards/index.json"), { cache: "no-store" });
     if (!response.ok) return [];
 
     const paths = await response.json();
@@ -104,7 +108,7 @@ async function discoverDecksFromManifest() {
 }
 
 async function loadDeckFromPath(path) {
-  const response = await fetch(path);
+  const response = await fetch(appUrl(path), { cache: "no-store" });
   if (!response.ok) {
     els.setupStatus.textContent = `Не удалось открыть ${path}`;
     return;
@@ -131,8 +135,12 @@ async function renderDeckList() {
       button.addEventListener("click", () => loadDeckFromPath(deck));
       els.deckList.append(button);
     }
+
+    if (decks.length > 0 && els.deckText.value.trim() === "") {
+      await loadDeckFromPath(decks[0]);
+    }
   } catch {
-    els.deckList.querySelector(".deck-list-title").textContent = "Автопоиск cards/ работает только через локальный сервер";
+    els.deckList.querySelector(".deck-list-title").textContent = "Не удалось прочитать cards/index.json";
   }
 }
 
