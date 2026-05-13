@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>AnkiNinja Web</title>
+    <link rel="stylesheet" href="style.css">
+  </head>
+  <body>
+    <main class="app">
+      <section class="setup" id="setupView">
+        <div class="brand">
+          <span>AnkiNinja</span>
+          <strong>Web</strong>
+        </div>
+
+        <label class="file-picker">
+          <input id="fileInput" type="file" accept=".txt,text/plain">
+          <span>Выбрать .txt файл</span>
+        </label>
+
+        <div class="deck-list" id="deckList">
+          <div class="deck-list-title">Поиск в cards/...</div>
+        </div>
+
+        <textarea id="deckText" spellcheck="false" placeholder="Она пообещала сохранить его секрет | She promised to keep his secret&#10;Он избегает встречать ее | He avoids meeting her"></textarea>
+
+        <div class="setup-actions">
+          <button class="primary" id="startBtn" type="button">Начать</button>
+          <button class="secondary" id="clearBtn" type="button">Очистить</button>
+        </div>
+
+        <p class="status" id="setupStatus">Формат: вопрос | ответ, одна карточка на строку.</p>
+      </section>
+
+      <section class="study hidden" id="studyView">
+        <header class="topbar">
+          <button class="icon-button" id="backBtn" type="button" aria-label="Назад">‹</button>
+          <div class="stats">
+            <span id="doneStat">0/0</span>
+            <span id="queueStat">очередь 0</span>
+          </div>
+          <button class="text-button" id="restartBtn" type="button">Заново</button>
+        </header>
+
+        <section class="card-area" aria-live="polite">
+          <div class="side-label" id="sideLabel">Вопрос</div>
+          <div class="card-text" id="frontText"></div>
+          <div class="answer hidden" id="answerBlock">
+            <div class="side-label">Ответ</div>
+            <div class="card-text answer-text" id="backText"></div>
+          </div>
+        </section>
+
+        <section class="note-area">
+          <label for="noteInput" id="noteLabel">Заметка</label>
+          <textarea id="noteInput" spellcheck="false" rows="3"></textarea>
+        </section>
+
+        <footer class="controls">
+          <button class="primary wide" id="showBtn" type="button">Показать ответ</button>
+          <div class="difficulty hidden" id="difficultyButtons">
+            <button type="button" data-rating="0">1<br><span>Легко</span></button>
+            <button type="button" data-rating="1">2<br><span>Нормально</span></button>
+            <button type="button" data-rating="2">3<br><span>Сложно</span></button>
+            <button type="button" data-rating="3">4<br><span>Очень сложно</span></button>
+          </div>
+        </footer>
+      </section>
+
+      <section class="finished hidden" id="finishedView">
+        <div class="brand">
+          <span>Сессия завершена</span>
+          <strong id="finishedCount">0 карточек</strong>
+        </div>
+        <button class="primary" id="againBtn" type="button">Повторить колоду</button>
+        <button class="secondary" id="newDeckBtn" type="button">Другая колода</button>
+      </section>
+    </main>
+
+    <script src="app.js"></script>
+  </body>
+</html>
