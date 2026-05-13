@@ -54,6 +54,11 @@ function parseDeck(text) {
 }
 
 async function discoverDecks(path = "cards/", seen = new Set()) {
+  if (path === "cards/") {
+    const manifestDecks = await discoverDecksFromManifest();
+    if (manifestDecks.length > 0) return manifestDecks;
+  }
+
   if (seen.has(path)) return [];
   seen.add(path);
 
@@ -78,6 +83,24 @@ async function discoverDecks(path = "cards/", seen = new Set()) {
   }
 
   return [...new Set(decks)].sort((left, right) => left.localeCompare(right));
+}
+
+async function discoverDecksFromManifest() {
+  try {
+    const response = await fetch("cards/index.json", { cache: "no-store" });
+    if (!response.ok) return [];
+
+    const paths = await response.json();
+    if (!Array.isArray(paths)) return [];
+
+    return paths
+      .filter((path) => typeof path === "string")
+      .filter((path) => path.startsWith("cards/"))
+      .filter((path) => path.toLowerCase().endsWith(".txt"))
+      .sort((left, right) => left.localeCompare(right));
+  } catch {
+    return [];
+  }
 }
 
 async function loadDeckFromPath(path) {
